@@ -1,0 +1,29 @@
+# services:
+
+#   backend:
+#     image: client:0.0.1
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#     ports:
+#       - "9000:9000"
+#     depends_on:
+#       - db
+#     environment:
+#       - PORT=9000
+#       - URL=jdbc:postgresql://postgres/post
+
+#   db:
+#     image: postgres:14.7-alpine
+#     environment:
+#       USER: postgres
+#       PASSWORD: postgres
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - ./db/init:/docker-entrypoint-initdb.d
+#       - db-data:/var/lib/postgresql/data
+#     restart: unless-stopped
+
+# volumes:
+#   db-data:
