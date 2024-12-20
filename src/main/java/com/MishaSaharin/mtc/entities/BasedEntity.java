@@ -8,15 +8,8 @@ import java.util.UUID;
 @MappedSuperclass
 public abstract class BasedEntity implements Persistable<UUID> {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID uuid;
-
-    public BasedEntity() {
-    }
-
-    public BasedEntity(UUID uuid) {
-        this.uuid = uuid;
-    }
 
     public UUID getUuid() {
         return this.uuid;
