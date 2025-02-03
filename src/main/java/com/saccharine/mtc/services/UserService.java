@@ -3,7 +3,7 @@ package com.saccharine.mtc.services;
 import com.saccharine.mtc.dto.UserRegistrationRequest;
 import com.saccharine.mtc.entities.Account;
 import com.saccharine.mtc.entities.User;
-import com.saccharine.mtc.exeptions.UserAlreadyExistsException;
+//import com.saccharine.mtc.exeptions.UserAlreadyExistsException;
 import com.saccharine.mtc.repositories.AccountRepository;
 import com.saccharine.mtc.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +31,7 @@ public class UserService {
     @Transactional
     public User registerUser(UserRegistrationRequest request) {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new UserAlreadyExistsException("Username already exists");
+            throw new RuntimeException("Username already exists");
         }
 
         User user = new User();

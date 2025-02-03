@@ -22,12 +22,6 @@ public class Account extends BaseEntity {
     public Account() {
     }
 
-    public Account(String accountNumber, BigDecimal balance, User user) {
-        this.accountNumber = accountNumber;
-        this.balance = balance;
-        this.user = user;
-    }
-
     public String getAccountNumber() {
         return accountNumber;
     }

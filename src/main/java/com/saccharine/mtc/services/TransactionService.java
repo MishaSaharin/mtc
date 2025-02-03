@@ -1,9 +1,10 @@
 package com.saccharine.mtc.services;
 
 import com.saccharine.mtc.entities.Account;
-import com.saccharine.mtc.exeptions.AccountNotFoundException;
-import com.saccharine.mtc.exeptions.InsufficientFundsException;
+//import com.saccharine.mtc.exeptions.AccountNotFoundException;
+//import com.saccharine.mtc.exeptions.InsufficientFundsException;
 import com.saccharine.mtc.repositories.AccountRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ public class TransactionService {
 
     private final AccountRepository accountRepository;
 
+    @Autowired
     public TransactionService(AccountRepository accountRepository) {
         this.accountRepository = accountRepository;
     }
@@ -21,12 +23,12 @@ public class TransactionService {
     @Transactional
     public void transferMoney(String fromAccountNumber, String toAccountNumber, BigDecimal amount) {
         Account fromAccount = accountRepository.findByAccountNumber(fromAccountNumber)
-                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + fromAccountNumber));
+                .orElseThrow(() -> new RuntimeException("Account not found: " + fromAccountNumber));
         Account toAccount = accountRepository.findByAccountNumber(toAccountNumber)
-                .orElseThrow(() -> new AccountNotFoundException("Account not found: " + toAccountNumber));
+                .orElseThrow(() -> new RuntimeException("Account not found: " + toAccountNumber));
 
         if (fromAccount.getBalance().compareTo(amount) < 0) {
-            throw new InsufficientFundsException("Insufficient funds in account: " + fromAccountNumber);
+            throw new RuntimeException("Insufficient funds in account: " + fromAccountNumber);
         }
 
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount)); // Вычитаем сумму
