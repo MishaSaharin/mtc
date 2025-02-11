@@ -1,9 +1,6 @@
 package com.saccharine.mtc.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.persistence.*;
 
 import java.util.Objects;
 
@@ -11,15 +8,32 @@ import java.util.Objects;
 @Table(name = "users")
 public class User extends BaseEntity {
 
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @Column(name = "username", nullable = false, unique = true)
     private String username;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    @Column(name = "password", nullable = false)
     private String password;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private Role role;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Account account;
+
+    public enum Role {
+        ROLE_USER,
+        ROLE_ADMIN
+    }
+
     public User() {
+    }
+
+    public User(String username, String password, Role role, Account account) {
+        this.username = username;
+        this.password = password;
+        this.role = role;
+        this.account = account;
     }
 
     public String getUsername() {
@@ -38,17 +52,33 @@ public class User extends BaseEntity {
         this.password = password;
     }
 
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public void setAccount(Account account) {
+        this.account = account;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
-        return Objects.equals(username, user.username) && Objects.equals(password, user.password);
+        return Objects.equals(username, user.username) && Objects.equals(password, user.password) && role == user.role && Objects.equals(account, user.account);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(username, password);
+        return Objects.hash(username, password, role, account);
     }
 
     @Override
@@ -56,6 +86,8 @@ public class User extends BaseEntity {
         return "User{" +
                 "username='" + username + '\'' +
                 ", password='" + password + '\'' +
+                ", role=" + role +
+                ", account=" + account +
                 '}';
     }
 }

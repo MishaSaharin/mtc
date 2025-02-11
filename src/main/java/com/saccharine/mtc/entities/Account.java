@@ -9,33 +9,24 @@ import java.util.Objects;
 @Table(name = "accounts")
 public class Account extends BaseEntity {
 
-    @Column(unique = true, nullable = false)
-    private String accountNumber;
-
-    @Column(nullable = false, precision = 19, scale = 2) // precision и scale для BigDecimal
-    private BigDecimal balance = BigDecimal.ZERO; // Инициализация нулем
-
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
+
+    @Column(name = "balance", nullable = false, precision = 19, scale = 4)
+    private BigDecimal balance = BigDecimal.ZERO;
+
+    @Version
+    @Column(name = "version")
+    private Long version;
 
     public Account() {
     }
 
-    public String getAccountNumber() {
-        return accountNumber;
-    }
-
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
-    }
-
-    public BigDecimal getBalance() {
-        return balance;
-    }
-
-    public void setBalance(BigDecimal balance) {
+    public Account(User user, BigDecimal balance, Long version) {
+        this.user = user;
         this.balance = balance;
+        this.version = version;
     }
 
     public User getUser() {
@@ -46,27 +37,51 @@ public class Account extends BaseEntity {
         this.user = user;
     }
 
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void deposit(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Неверная сумма для зачисления");
+        }
+        this.balance = this.balance.add(amount);
+    }
+
+    public boolean withdraw(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Неверная сумма для списания");
+        }
+        if (balance.compareTo(amount) >= 0) {
+            this.balance = this.balance.subtract(amount);
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Account account = (Account) o;
-        return Objects.equals(accountNumber, account.accountNumber)
-                && Objects.equals(balance, account.balance)
-                && Objects.equals(user, account.user);
+        return Objects.equals(user, account.user) && Objects.equals(balance, account.balance) && Objects.equals(version, account.version);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(accountNumber, balance, user);
+        return Objects.hash(user, balance, version);
     }
 
     @Override
     public String toString() {
         return "Account{" +
-                "accountNumber='" + accountNumber + '\'' +
+                "user=" + user +
                 ", balance=" + balance +
-                ", user=" + user +
+                ", version=" + version +
                 '}';
     }
 }

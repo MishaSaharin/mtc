@@ -2,42 +2,63 @@ package com.saccharine.mtc.services;
 
 import com.saccharine.mtc.entities.Account;
 import com.saccharine.mtc.repositories.AccountRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.persistence.OptimisticLockException;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Service
-@EnableTransactionManagement
 public class TransactionService {
 
     private final AccountRepository accountRepository;
 
-    @Autowired
     public TransactionService(AccountRepository accountRepository) {
         this.accountRepository = accountRepository;
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW,
-            isolation = Isolation.READ_COMMITTED)
-    public void transferMoney(String fromAccountNumber, String toAccountNumber, BigDecimal amount) {
-        Account fromAccount = accountRepository.findByAccountNumber(fromAccountNumber)
-                .orElseThrow(() -> new RuntimeException("Account not found: " + fromAccountNumber));
-        Account toAccount = accountRepository.findByAccountNumber(toAccountNumber)
-                .orElseThrow(() -> new RuntimeException("Account not found: " + toAccountNumber));
-
-        if (fromAccount.getBalance().compareTo(amount) < 0) {
-            throw new RuntimeException("Insufficient funds in account: " + fromAccountNumber);
+    @Transactional
+    public void optimisticTransferMoney(UUID senderId, UUID receiverId, BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Сумма перевода должна быть положительной");
         }
 
-        fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
-        toAccount.setBalance(toAccount.getBalance().add(amount));
+        Account senderAccount = accountRepository.findByUserId(senderId)
+                .orElseThrow(() -> new IllegalArgumentException("Счет отправителя не найден"));
+        Account receiverAccount = accountRepository.findByUserId(receiverId)
+                .orElseThrow(() -> new IllegalArgumentException("Счет получателя не найден"));
 
-        accountRepository.save(fromAccount);
-        accountRepository.save(toAccount);
+        if (!senderAccount.withdraw(amount)) {
+            throw new IllegalStateException("Недостаточно средств на счете отправителя");
+        }
+        receiverAccount.deposit(amount);
+
+        try {
+            accountRepository.save(senderAccount);
+            accountRepository.save(receiverAccount);
+        } catch (OptimisticLockException ex) {
+            throw new OptimisticLockException("Ошибка оптимистичной блокировки. Попробуйте повторить операцию позже.", ex);
+        }
+    }
+
+    @Transactional
+    public void pessimisticTransferMoney(UUID senderId, UUID receiverId, BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Сумма перевода должна быть положительной");
+        }
+
+        Account senderAccount = accountRepository.findByUserIdForUpdate(senderId)
+                .orElseThrow(() -> new IllegalArgumentException("Счет отправителя не найден"));
+        Account receiverAccount = accountRepository.findByUserIdForUpdate(receiverId)
+                .orElseThrow(() -> new IllegalArgumentException("Счет получателя не найден"));
+
+        if (!senderAccount.withdraw(amount)) {
+            throw new IllegalStateException("Недостаточно средств на счете отправителя");
+        }
+        receiverAccount.deposit(amount);
+
+        accountRepository.save(senderAccount);
+        accountRepository.save(receiverAccount);
     }
 }
