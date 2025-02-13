@@ -2,10 +2,72 @@
 <databaseChangeLog
         xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-                        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+        xsi:schemaLocation="
+       http://www.liquibase.org/xml/ns/dbchangelog
+       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.0.xsd">
 
-    <!-- Подключаем другие файлы миграций -->
-    <include file="db/changelog/changelog-1.0.xml" relativeToChangelogFile="true"/>
-    <include file="db/changelog/changelog-1.1.xml" relativeToChangelogFile="true"/>
+    <!-- ChangeSet для создания таблицы пользователей -->
+    <changeSet id="1" author="postgres">
+        <createTable tableName="users">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="username" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="password" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- ChangeSet для создания таблицы счетов -->
+    <changeSet id="2" author="postgres">
+        <createTable tableName="accounts">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="UUID">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="balance" type="NUMERIC(19,4)" defaultValueNumeric="0.0000">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <!-- Добавление внешнего ключа: accounts.user_id ссылается на users.id -->
+        <addForeignKeyConstraint constraintName="fk_account_user"
+                                 baseTableName="accounts"
+                                 baseColumnNames="user_id"
+                                 referencedTableName="users"
+                                 referencedColumnNames="id"/>
+    </changeSet>
+
+    <!-- ChangeSet для вставки тестового администратора -->
+    <changeSet id="3" author="postgres" runOnChange="true">
+        <insert tableName="users">
+            <column name="id" value="550e8400-e29b-41d4-a716-446655440000"/>
+            <column name="username" value="admin"/>
+            <!-- Пример bcrypt-хеша; замените на реальное значение при необходимости -->
+            <column name="password" value="$2a$10$abcdef..."/>
+            <column name="role" value="ROLE_ADMIN"/>
+            <column name="created_at" valueDate="2025-01-01T00:00:00Z"/>
+            <column name="updated_at" valueDate="2025-01-01T00:00:00Z"/>
+        </insert>
+    </changeSet>
+
 </databaseChangeLog>

@@ -4,9 +4,10 @@ import com.saccharine.mtc.entities.Account;
 import com.saccharine.mtc.entities.User;
 import com.saccharine.mtc.repositories.AccountRepository;
 import com.saccharine.mtc.repositories.UserRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -26,7 +27,7 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public User registerUser(String username, String password, User.Role role) {
         if (username == null || username.isBlank() || password == null || password.isBlank()) {
             throw new IllegalArgumentException("Имя пользователя и пароль не должны быть пустыми");

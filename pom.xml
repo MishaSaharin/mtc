@@ -79,7 +79,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Liquibase for migration db -->
+        <!-- Liquibase для миграций базы данных -->
         <dependency>
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
@@ -104,7 +104,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Testing: Spring Boot Starter Test (JUnit5, Mockito, Hamcrest) -->
+        <!-- Тестирование: Spring Boot Starter Test (JUnit5, Mockito, Hamcrest) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -123,11 +123,16 @@
             <version>2.2</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+            <version>6.2.3</version>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Maven Compiler Plugin for Java 17 -->
+            <!-- Maven Compiler Plugin для компиляции под Java 17 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -137,12 +142,12 @@
                 </configuration>
             </plugin>
 
-            <!-- Spring Boot Maven Plugin for jar-file -->
+            <!-- Spring Boot Maven Plugin для сборки jar-файла -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <!-- We exclude autoconfiguration of lombok, if suddenly it turns out to be in classpath -->
+                    <!-- Исключаем автоконфигурацию lombok, если вдруг он окажется в classpath -->
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
