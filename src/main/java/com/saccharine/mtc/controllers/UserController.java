@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -36,7 +37,7 @@ public class UserController {
                                                         @RequestParam @NotBlank String password) {
         User user = userService.registerUser(username, password, User.Role.ROLE_USER);
         return ResponseEntity.ok(Map.of("message", "Пользователь успешно зарегистрирован",
-                "userId", user.getId().toString()));
+                "userId", Objects.requireNonNull(user.getId()).toString()));
     }
 
     @PostMapping("/login")
@@ -47,7 +48,7 @@ public class UserController {
             throw new IllegalArgumentException("Неверные учетные данные");
         }
         User user = optionalUser.get();
-        String token = jwtUtil.generateToken(user.getId(), user.getRole().name());
+        String token = jwtUtil.generateToken(Objects.requireNonNull(user.getId()), user.getRole().name());
         return ResponseEntity.ok(Map.of("token", token));
     }
 }

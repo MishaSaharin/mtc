@@ -3,7 +3,6 @@ package com.saccharine.mtc.services;
 import com.saccharine.mtc.entities.Account;
 import com.saccharine.mtc.repositories.AccountRepository;
 import jakarta.persistence.OptimisticLockException;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +20,6 @@ public class TransactionService {
         this.accountRepository = accountRepository;
     }
 
-    @Async
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void optimisticTransferMoney(UUID senderId, UUID receiverId, BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -46,7 +44,6 @@ public class TransactionService {
         }
     }
 
-    @Async
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void pessimisticTransferMoney(UUID senderId, UUID receiverId, BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {

@@ -1,20 +1,26 @@
 package com.saccharine.mtc.services;
 
+import com.saccharine.mtc.entities.Account;
 import com.saccharine.mtc.entities.User;
 import com.saccharine.mtc.repositories.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-public class UserDetailsServiceImplTest {
+
+@ExtendWith(MockitoExtension.class)
+class UserDetailsServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
@@ -22,41 +28,62 @@ public class UserDetailsServiceImplTest {
     @InjectMocks
     private UserDetailsServiceImpl userDetailsService;
 
-    private UUID userId;
-    private User user;
+    // Позитивный сценарий: пользователь найден и корректно преобразован в UserDetails
+    @Test
+    void loadUserByUsername_ShouldReturnUserDetails_WhenUserExists() {
+        // Arrange
+        User user = new User("testedUser", "testedPassword", User.Role.ROLE_USER, new Account());
 
-    @BeforeEach
-    public void setUp() {
-        MockitoAnnotations.openMocks(this);
-        userId = UUID.randomUUID();
-        user = new User();
-        user.setUsername("user1");
-        user.setPassword("encodedpassword");
-        user.setRole(User.Role.ROLE_USER);
+        UUID userId = UUID.randomUUID();
+        String userIdString = userId.toString();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        // Act
+        UserDetails userDetails = userDetailsService.loadUserByUsername(userIdString);
+
+        // Assert
+        assertThat(userDetails).isNotNull();
+        assertThat(userDetails.getUsername()).isEqualTo(userIdString);
+        assertThat(userDetails.getPassword()).isEqualTo("encodedPassword");
+        assertThat(userDetails.getAuthorities())
+                .hasSize(1)
+                .extracting("authority")
+                .containsExactly("USER");
+
+        verify(userRepository).findById(userId);
     }
 
-//    @Test
-//    public void testLoadUserByUsername() {
-//        String userIdStr = userId.toString();
-//        UserDetails userDetails = userDetailsService.loadUserByUsername(userIdStr);
-//
-//        assertNotNull(userDetails);
-//        assertEquals(userId.toString(), userDetails.getUsername());
-//        assertTrue(userDetails.getAuthorities().stream()
-//                .anyMatch(auth -> auth.getAuthority().equals("ROLE_USER")));
-//    }
-
+    // Негативный сценарий: неверный формат идентификатора пользователя
     @Test
-    public void testLoadUserByUsernameNotFound() {
-        String nonExistentUserId = UUID.randomUUID().toString();
-        when(userRepository.findById(UUID.fromString(nonExistentUserId))).thenReturn(Optional.empty());
+    void loadUserByUsername_ShouldThrowException_WhenUserIdFormatIsInvalid() {
+        // Arrange
+        String invalidUserId = "invalid-uuid";
 
-        Exception exception = assertThrows(UsernameNotFoundException.class, () -> {
-            userDetailsService.loadUserByUsername(nonExistentUserId);
-        });
+        // Act & Assert
+        assertThatThrownBy(() -> userDetailsService.loadUserByUsername(invalidUserId))
+                .isInstanceOf(UsernameNotFoundException.class)
+                .hasMessage("Неверный формат идентификатора пользователя");
+    }
 
-        assertEquals("Пользователь не найден", exception.getMessage());
+    // Негативный сценарий: пользователь не найден
+    @Test
+    void loadUserByUsername_ShouldThrowException_WhenUserNotFound() {
+        // Arrange
+        UUID userId = null;
+        User user = new User();
+        if (user.getId() == null) {
+            userId = UUID.randomUUID();
+        }
+        String userIdString = userId.toString();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThatThrownBy(() -> userDetailsService.loadUserByUsername(userIdString))
+                .isInstanceOf(UsernameNotFoundException.class)
+                .hasMessage("Пользователь не найден");
+
+        verify(userRepository).findById(userId);
     }
 }

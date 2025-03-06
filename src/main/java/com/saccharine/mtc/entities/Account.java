@@ -1,6 +1,7 @@
 package com.saccharine.mtc.entities;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -18,6 +19,7 @@ public class Account extends BaseEntity {
 
     @Version
     @Column(name = "version")
+    @ColumnDefault("OL")
     private Long version;
 
     public Account() {

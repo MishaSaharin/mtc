@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -32,7 +33,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("Пользователь не найден"));
         GrantedAuthority authority = new SimpleGrantedAuthority(user.getRole().name());
         return new org.springframework.security.core.userdetails.User(
-                user.getId().toString(),
+                Objects.requireNonNull(user.getId()).toString(),
                 user.getPassword(),
                 Collections.singleton(authority)
         );
