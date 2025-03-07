@@ -43,8 +43,16 @@ public class Account extends BaseEntity {
         return balance;
     }
 
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
+    }
+
     public Long getVersion() {
         return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public void deposit(BigDecimal amount) {

@@ -1,6 +1,5 @@
 package com.saccharine.mtc.services;
 
-import com.saccharine.mtc.entities.Account;
 import com.saccharine.mtc.entities.User;
 import com.saccharine.mtc.repositories.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -32,10 +31,12 @@ class UserDetailsServiceImplTest {
     @Test
     void loadUserByUsername_ShouldReturnUserDetails_WhenUserExists() {
         // Arrange
-        User user = new User("testedUser", "testedPassword", User.Role.ROLE_USER, new Account());
-
         UUID userId = UUID.randomUUID();
         String userIdString = userId.toString();
+        User user = new User();
+        user.setId(userId);
+        user.setPassword("encodedPassword");
+        user.setRole(User.Role.ROLE_USER);  // Предполагается, что у вас есть enum User.Role
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -70,11 +71,7 @@ class UserDetailsServiceImplTest {
     @Test
     void loadUserByUsername_ShouldThrowException_WhenUserNotFound() {
         // Arrange
-        UUID userId = null;
-        User user = new User();
-        if (user.getId() == null) {
-            userId = UUID.randomUUID();
-        }
+        UUID userId = UUID.randomUUID();
         String userIdString = userId.toString();
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());

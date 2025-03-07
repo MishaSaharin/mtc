@@ -47,4 +47,8 @@ public abstract class BaseEntity implements Persistable<UUID> {
     public ZonedDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
 }

@@ -12,8 +12,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -37,7 +43,7 @@ class TransactionServiceTest {
         BigDecimal amount = null;
 
         // Act & Assert
-        assertThatThrownBy(() -> transactionService.optimisticTransferMoney(senderId, receiverId, amount))
+        assertThatThrownBy(() -> transactionService.optimisticTransferMoney(senderId, receiverId, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Сумма перевода должна быть положительной");
     }
@@ -299,5 +305,91 @@ class TransactionServiceTest {
         verify(receiverAccount).deposit(amount);
         verify(accountRepository).save(senderAccount);
         verify(accountRepository).save(receiverAccount);
+    }
+
+    @Test
+    public void testConcurrentOptimisticTransfer() throws Exception {
+        UUID senderId = UUID.randomUUID();
+        UUID receiverId = UUID.randomUUID();
+
+        // Создаем счета с начальными балансами: отправитель 100, получатель 50
+        Account senderAccount = new Account();
+        senderAccount.setId(senderId);
+        senderAccount.deposit(new BigDecimal("100.00"));
+
+        Account receiverAccount = new Account();
+        receiverAccount.setId(receiverId);
+        receiverAccount.deposit(new BigDecimal("50.00"));
+
+        // Мокаем методы поиска по идентификатору, возвращая подготовленные счета
+        when(accountRepository.findByUserId(senderId)).thenReturn(Optional.of(senderAccount));
+        when(accountRepository.findByUserId(receiverId)).thenReturn(Optional.of(receiverAccount));
+
+        // Для вызова метода save(receiverAccount) будем возвращать переданный объект без изменений
+        when(accountRepository.save(argThat(account -> account.equals(receiverAccount))))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Arrange
+        // Суммы переводов
+        BigDecimal transferAmount1 = new BigDecimal("30.00");
+        BigDecimal transferAmount2 = new BigDecimal("40.00");
+
+        // AtomicInteger для подсчета количества вызовов сохранения счета отправителя.
+        // При первом вызове возвращаем счет, при втором выбрасываем исключение.
+        AtomicInteger saveCounter = new AtomicInteger(0);
+        when(accountRepository.save(argThat(account -> account.equals(senderAccount))))
+                .thenAnswer(invocation -> {
+                    int count = saveCounter.incrementAndGet();
+                    if (count == 1) {
+                        return invocation.getArgument(0);
+                    } else {
+                        throw new OptimisticLockException("Ошибка оптимистичной блокировки. Попробуйте повторить операцию позже.");
+                    }
+                });
+
+        // Используем ExecutorService для параллельного выполнения двух переводов
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        Callable<Boolean> task1 = () -> {
+            try {
+                transactionService.optimisticTransferMoney(senderId, receiverId, transferAmount1);
+                return true; // перевод выполнен успешно
+            } catch (OptimisticLockException ex) {
+                return false; // перевод завершился ошибкой оптимистичной блокировки
+            }
+        };
+
+        Callable<Boolean> task2 = () -> {
+            try {
+                transactionService.optimisticTransferMoney(senderId, receiverId, transferAmount2);
+                return true;
+            } catch (OptimisticLockException ex) {
+                return false;
+            }
+        };
+
+        // Act: запускаем задачи параллельно
+        Future<Boolean> future1 = executor.submit(task1);
+        Future<Boolean> future2 = executor.submit(task2);
+
+        boolean result1 = future1.get();
+        boolean result2 = future2.get();
+
+        // Assert
+        // Ожидаем, что ровно одна транзакция завершилась успешно
+        int successCount = (result1 ? 1 : 0) + (result2 ? 1 : 0);
+        assertThat(successCount).isEqualTo(1);
+
+        // Если успешен перевод с суммой 30, то баланс отправителя будет 70, а получателя – 80
+        // Если успешен перевод с суммой 40, то баланс отправителя будет 60, а получателя – 90
+        if (result1) {
+            assertThat(senderAccount.getBalance()).isEqualByComparingTo(new BigDecimal("70.00"));
+            assertThat(receiverAccount.getBalance()).isEqualByComparingTo(new BigDecimal("80.00"));
+        } else if (result2) {
+            assertThat(senderAccount.getBalance()).isEqualByComparingTo(new BigDecimal("60.00"));
+            assertThat(receiverAccount.getBalance()).isEqualByComparingTo(new BigDecimal("90.00"));
+        }
+
+        executor.shutdown();
     }
 }
