@@ -4,7 +4,7 @@ import com.saccharine.mtc.entities.Account;
 import com.saccharine.mtc.entities.User;
 import com.saccharine.mtc.repositories.AccountRepository;
 import com.saccharine.mtc.repositories.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -20,7 +20,6 @@ public class UserService {
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Autowired
     public UserService(UserRepository userRepository,
                        AccountRepository accountRepository,
                        PasswordEncoder passwordEncoder) {
@@ -52,6 +51,7 @@ public class UserService {
         return user;
     }
 
+    @Cacheable(value = "users", key = "#username")
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
     }
